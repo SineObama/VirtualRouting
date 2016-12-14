@@ -3,9 +3,17 @@ package selforganized;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.Map.Entry;
 
+/**
+ * 路由器发送距离向量的线程
+ * 
+ * @author Sine
+ *
+ */
 public class Sender extends Thread {
 	Router router;
+	DV dv;
 
 	public Sender(Router router) {
 		this.router = router;
@@ -23,16 +31,18 @@ public class Sender extends Thread {
 				e1.printStackTrace();
 			}
 			// 开始发送路由表
-			synchronized (router.table) {
-				for (Info info : router.neibours) {
-					try {
-						Socket socket = new Socket(info.address, info.port);
-						ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
-						objectOutputStream.writeObject(router.table);
-						socket.close();
-					} catch (IOException e) {
-						System.out.println(router.name + "发送路由表" + info.address + ":" + info.port + "失败: " + e);
-					}
+			for (Node info : router.dvs.keySet()) {
+				try {
+					if (info.equals(router.me))
+						continue;
+					Socket socket = new Socket(info.addr, info.port);
+					ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
+					DV tem = router.dvs.get(router.me);
+					objectOutputStream.writeObject(tem);
+					socket.close();
+//					router.debug("发送距离向量到" + info + "成功");
+				} catch (IOException e) {
+					router.debug("发送距离向量到" + info + "失败: " + e);
 				}
 			}
 		}
