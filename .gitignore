@@ -1,4 +1,5 @@
 /client*.txt
+/*.bat
 *.class
 target/
 
