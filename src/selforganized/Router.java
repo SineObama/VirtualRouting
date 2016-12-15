@@ -98,6 +98,7 @@ public class Router extends Thread {
 				} else if (obj instanceof Message) {
 					Message message = (Message) obj;
 					if (message.dst.equals(me)) {
+						debug("收到" + message.sender + "转发的报文");
 						Client.sysout("收到来自" + message.src + "的报文：\n" + message.text);
 						continue;
 					}
@@ -148,76 +149,65 @@ public class Router extends Thread {
 	void refresh(DV dv) throws MyException {
 		final Node neibour = dv.node;
 		final int disToNeibour = cost.get(neibour);
-		DV myDv = dvs.get(me);
+		DV myDv = getDV();
 		DV neibourDV = dvs.get(neibour);
 		boolean changed = false;
 
 		for (final Entry<Node, RouteInfo> entry : dv.infos.entrySet()) {
-			final Node des = entry.getKey();
-			if (des.equals(neibour))
+			final Node dst = entry.getKey();
+			final RouteInfo newInfo = entry.getValue();
+			final int dis = newInfo.dis;
+			if (dst.equals(neibour)) // 忽略邻居到邻居自身的条目
 				continue;
-			final RouteInfo newHis = entry.getValue();
-			final int newDis = newHis.dis;
 
 			// 单独处理邻居到自己的代价更新
-			if (des.equals(me)) {
-				if (disToNeibour != newDis) {
-					// FIXME Integer值的修改？
-					cost.remove(neibour);
-					cost.put(neibour, newDis);
-
-					final RouteInfo go = myDv.infos.get(neibour);
-					go.dis = newDis;
-
-					final RouteInfo back = neibourDV.infos.get(me);
-					back.dis = newDis;
-					back.next = new Node(newHis.next);
-
+			if (dst.equals(me)) {
+				if (disToNeibour != dis) {
+					cost.replace(neibour, dis);
+					myDv.infos.get(neibour).dis = dis;
+					neibourDV.infos.replace(me, new RouteInfo(newInfo.next, dis));
 					changed = true;
-					debug("更新邻居" + neibour + "到自己的代价为" + newDis);
+					debug("更新邻居" + neibour + "和自己之间的代价为" + showCost(dis));
 				}
 				continue;
 			}
 
 			// 更新邻居的距离向量
-			final RouteInfo his = neibourDV.infos.get(des);
-			if (his == null) { // 添加
-				neibourDV.infos.put(des, new RouteInfo(newHis));
-				debug("添加来自" + neibour + "到" + des + "的代价为" + newDis);
-			} else if (!his.equals(newHis)) { // 更改
+			final RouteInfo oldInfo = neibourDV.infos.get(dst);
+			if (oldInfo != null && oldInfo.equals(newInfo))
+				continue;
+			
+			// 添加或更改
+			neibourDV.infos.replace(dst, new RouteInfo(newInfo));
+			debug("更新从邻居" + neibour + "到" + dst + "的代价为" + showCost(dis));
+			
+			// 检查自身的距离向量是否需要更新。分2种情况
+			final RouteInfo myInfo = myDv.infos.get(dst);
 
-				his.dis = newDis;
-				his.next = new Node(newHis.next);
-				debug("更新邻居" + neibour + "到" + des + "的代价为" + newDis);
-				// 再检查自身的距离向量是否需要更新
-				final RouteInfo my = myDv.infos.get(des);
+			int totalDis = disToNeibour + dis;
+			if (totalDis < 0) // 溢出表明不可达
+				totalDis = Integer.MAX_VALUE;
 
-				int totalDis = disToNeibour + newDis;
-				if (totalDis < 0) // 溢出表明不可达
-					totalDis = Integer.MAX_VALUE;
-
-				if (my.dis > totalDis) { // 代价变小
-					my.dis = totalDis;
-					my.next = new Node(neibour);
-					debug("更新经由" + my.next + "到" + des + "的代价为" + my.dis);
-				} else if (my.next.equals(neibour) && my.dis < totalDis) { // 原路径代价增加
-					int src = my.dis;
-					my.dis = totalDis;
-					for (Entry<Node, Integer> n : cost.entrySet()) { // 遍历邻居
-						DV curDV = dvs.get(n.getKey());
-						int curDis = n.getValue() + curDV.infos.get(des).dis;
-						if (curDis < 0) // 溢出表明不可达
-							curDis = Integer.MAX_VALUE;
-						if (my.dis > curDis) {
-							my.dis = curDis;
-							my.next = new Node(n.getKey());
-						}
+			if (myInfo.dis > totalDis) { // 代价变小
+				myInfo.dis = totalDis;
+				myInfo.next = new Node(neibour);
+				debug("更新自己经由" + myInfo.next + "到" + dst + "的代价为" + showCost(myInfo.dis));
+			} else if (myInfo.next.equals(neibour) && myInfo.dis < totalDis) { // 原路径代价增加
+				int origin = myInfo.dis;
+				myInfo.dis = totalDis;  // 假定还按原路进行
+				for (Entry<Node, Integer> n : cost.entrySet()) { // 遍历邻居
+					DV curDV = dvs.get(n.getKey());
+					int curDis = n.getValue() + curDV.infos.get(dst).dis;
+					if (curDis < 0) // 溢出表明不可达
+						curDis = Integer.MAX_VALUE;
+					if (myInfo.dis > curDis) {
+						myInfo.dis = curDis;
+						myInfo.next = new Node(n.getKey());
 					}
-					debug("更新经由" + my.next + "到" + des + "的代价为" + my.dis);
-					if (src != my.dis) // 需要更新距离向量
-						changed = true;
 				}
-
+				debug("更新自己经由" + myInfo.next + "到" + dst + "的代价为" + myInfo.dis);
+				if (origin != myInfo.dis) // 需要更新距离向量
+					changed = true;
 			}
 		}
 
@@ -256,6 +246,10 @@ public class Router extends Thread {
 	 */
 	void debug(String s) {
 		System.out.println(df.format(new Date()) + "\t" + me + "\t" + s);
+	}
+
+	private static String showCost(int cost) {
+		return cost == Integer.MAX_VALUE ? "无穷(不可达)" : Integer.toString(cost);
 	}
 
 }
