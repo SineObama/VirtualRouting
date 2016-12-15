@@ -45,13 +45,13 @@ public class Node implements Comparable<Node>, Serializable {
 		this.port = port;
 	}
 
-	public Node(Node info) {
-		if (info == null) {
+	public Node(Node node) {
+		if (node == null) {
 			addr = "";
 			port = 0;
 		} else {
-			addr = info.addr;
-			port = info.port;
+			addr = node.addr;
+			port = node.port;
 		}
 	}
 

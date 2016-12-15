@@ -97,20 +97,13 @@ public class Router extends Thread {
 					}
 				} else if (obj instanceof Message) {
 					Message message = (Message) obj;
+					debug("收到由" + message.sender + "转发的报文");
 					if (message.dst.equals(me)) {
-						debug("收到" + message.sender + "转发的报文");
 						Client.sysout("收到来自" + message.src + "的报文：\n" + message.text);
 						continue;
 					}
-					debug("收到来自" + message.sender + "转发的报文");
-					Node next = getDV().infos.get(message.dst).next;
-					if (next == null) {
-						debug("路由表中没有节点" + message.dst + "的信息，无法发送");
-						continue;
-					}
-					message.sender = me;
-					ObjectUtil.send(next, message);
-					debug("成功转发来自" + message.sender + "的报文到" + next);
+					message.sender = new Node(me);
+					debug(forward(message));
 				}
 			}
 		} catch (Exception e) {
@@ -131,51 +124,54 @@ public class Router extends Thread {
 	 * @throws UnknownHostException
 	 */
 	public String send(Node dst, String msg) {
-		RouteInfo info = getDV().infos.get(dst);
-		if (info == null)
-			return "路由表中没有此节点信息，无法发送";
-		Node next = info.next;
-		if (info.dis == Integer.MAX_VALUE)
-			return "此节点不可达";
+		Message message = new Message();
+		message.src = me;
+		message.dst = dst;
+		message.sender = me;
+		message.text = msg;
+		return forward(message);
+	}
+
+	private String forward(Message message) {
+		Node neibour = null;
 		while (true) {
 			try {
-				Message message = new Message();
-				message.src = me;
-				message.dst = dst;
-				message.sender = me;
-				message.text = msg;
-				ObjectUtil.send(next, message);
+				RouteInfo info = getDV().infos.get(message.dst);
+				if (info == null || info.dis == Integer.MAX_VALUE)
+					return "此节点目前不可达。报文取消发送";
+				neibour = info.next;
+				ObjectUtil.send(neibour, message);
 			} catch (UnknownHostException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IOException e) {
-				cost.replace(next, Integer.MAX_VALUE);
-				debug("下一节点" + next + "不可达。将查找其他路径");
-				RouteInfo minInfo = getMin(dst);
+				cost.replace(neibour, Integer.MAX_VALUE);
+				debug("邻居" + neibour + "变为不可达。将查找其他路径");
+				RouteInfo minInfo = getMin(message.dst);
 				try {
-					getDV().infos.replace(next, new RouteInfo(minInfo));
+					getDV().infos.replace(message.dst, new RouteInfo(minInfo));
 				} catch (MyException e1) {
-					return "内部错误";
+					return "内部严重错误";
 				}
-				if (minInfo.dis == Integer.MAX_VALUE)
-					return "目前无法到达目标节点";
-				next = minInfo.next;
+				continue;
 			}
-			return "成功发送报文到下一节点：" + next;
+			break;
 		}
+		return "成功发送报文到下一节点：" + neibour;
 	}
 
 	private RouteInfo getMin(Node dst) {
 		RouteInfo minInfo = new RouteInfo(null, Integer.MAX_VALUE);
 		synchronized (cost) {
-			for (Entry<Node, Integer> n : cost.entrySet()) { // 遍历邻居
-				DV curDV = dvs.get(n.getKey());
-				int curDis = n.getValue() + curDV.infos.get(dst).dis;
-				if (curDis < 0) // 溢出表明不可达
-					curDis = Integer.MAX_VALUE;
-				if (minInfo.dis > curDis) {
-					minInfo.dis = curDis;
-					minInfo.next = new Node(n.getKey());
+			for (Entry<Node, Integer> entry : cost.entrySet()) { // 遍历邻居
+				Node neibour = entry.getKey();
+				DV neibourDV = dvs.get(neibour);
+				int totalDis = entry.getValue() + neibourDV.infos.get(dst).dis;
+				if (totalDis < 0) // 溢出表明不可达
+					totalDis = Integer.MAX_VALUE;
+				if (minInfo.dis > totalDis) {
+					minInfo.dis = totalDis;
+					minInfo.next = new Node(neibour);
 				}
 			}
 		}
