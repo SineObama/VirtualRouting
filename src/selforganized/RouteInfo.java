@@ -13,7 +13,9 @@ public class RouteInfo implements Serializable {
 	public Node next;
 	public int dis;
 
-	public RouteInfo(RouteInfo o) {
+	public RouteInfo(RouteInfo o) throws MyException {
+		if (o == null)
+			throw new MyException("路由信息不能为空");
 		next = new Node(o.next);
 		dis = o.dis;
 	}
@@ -24,6 +26,8 @@ public class RouteInfo implements Serializable {
 	}
 
 	public boolean equals(RouteInfo o) {
+		if (o == null)
+			return false;
 		return next.equals(o.next) && dis == o.dis;
 	}
 

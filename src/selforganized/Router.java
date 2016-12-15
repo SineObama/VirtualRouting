@@ -21,7 +21,7 @@ public class Router extends Thread {
 	private Node me;
 	private Map<Node, DV> dvs = new TreeMap<>();
 
-	private File file;
+	private final File file;
 	private Sender sender;
 	private final static SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");
 
@@ -34,20 +34,23 @@ public class Router extends Thread {
 	public void run() {
 
 		// 读取静态路由地址端口和距离
-		// 文件格式：每一行是地址、端口和距离，距离为0表示自己，距离为-1表示非邻居
+		// 文件格式：每一行：[地址:端口] [距离（代价）]，距离为0表示自己，距离为-1表示非邻居
 		try {
-			InputStreamReader read = new InputStreamReader(new FileInputStream(file));
-			BufferedReader bufferedReader = new BufferedReader(read);
+			BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
 			String lineTxt;
 
-			// 初始化距离为无穷。从文件读取所有节点
+			// 从文件读取所有节点，初始化距离为无穷
 			// FIXME 每个表中都含有自己到自己的条目，代价无穷
 			final RouteInfo infinite = new RouteInfo(null, Integer.MAX_VALUE);
 			TreeMap<Node, RouteInfo> initMap = new TreeMap<>();
 			while ((lineTxt = bufferedReader.readLine()) != null) {
 				String[] strings = lineTxt.split(" ");
-				Node des = new Node(strings[0], Integer.parseInt(strings[1]));
-				int distance = Integer.parseInt(strings[2]);
+				if (strings.length != 2) {
+					bufferedReader.close();
+					throw new MyException("文件格式错误");
+				}
+				Node des = new Node(strings[0]);
+				int distance = Integer.parseInt(strings[1]);
 				if (distance == 0) { // 自己
 					me = new Node(des);
 				} else if (distance != -1) { // 邻居
@@ -56,6 +59,7 @@ public class Router extends Thread {
 				}
 				initMap.put(des, new RouteInfo(infinite));
 			}
+			bufferedReader.close();
 
 			// 对邻居的距离向量，初始化所有节点为无穷
 			for (DV dv : dvs.values())
@@ -75,21 +79,13 @@ public class Router extends Thread {
 			}
 			dvs.put(me, mydv);
 
-			bufferedReader.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.out.println(getName() + "\t结束");
-			return;
-		}
+			debug("初始化完成");
 
-		debug("初始化完成");
+			// 创建发送线程
+			sender = new Sender(this);
+			sender.start();
 
-		// 创建发送线程
-		sender = new Sender(this);
-		sender.start();
-
-		// 开始监听
-		try {
+			// 开始监听
 			ServerSocket serverSocket = new ServerSocket(me.port);
 			while (true) {
 				Object obj = ObjectUtil.receive(serverSocket);
@@ -116,38 +112,36 @@ public class Router extends Thread {
 					debug("成功转发来自" + message.sender + "的报文到" + next);
 				}
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		debug("路由器已停止");
 	}
 
 	/**
 	 * 发送信息到另一个节点
 	 * 
 	 * @param node
-	 *            接受节点
+	 *            接收节点
 	 * @param msg
 	 *            信息
-	 * @return 反馈信息
 	 * @throws IOException
 	 * @throws UnknownHostException
 	 */
-	public String send(Node node, String msg) throws UnknownHostException, IOException {
+	public void send(Node node, String msg) throws UnknownHostException, IOException {
 		Node next = getDV().infos.get(node).next;
 		if (next == null)
-			return "路由表中没有此节点信息，无法发送";
+			debug("路由表中没有此节点信息，无法发送");
 		Message message = new Message();
 		message.src = me;
 		message.dst = node;
 		message.sender = me;
 		message.text = msg;
 		ObjectUtil.send(next, message);
-		return "成功发送报文，下一节点：" + next;
+		debug("成功发送报文，下一节点：" + next);
 	}
 
-	void refresh(DV dv) {
+	void refresh(DV dv) throws MyException {
 		final Node neibour = dv.node;
 		final int disToNeibour = cost.get(neibour);
 		DV myDv = dvs.get(me);
@@ -223,7 +217,7 @@ public class Router extends Thread {
 			}
 		}
 
-		// 路由表改变后立即发送新路边给邻居
+		// 路由表改变后立即发送最新路由表给邻居
 		if (changed)
 			sender.notify();
 	}
@@ -251,7 +245,7 @@ public class Router extends Thread {
 	}
 
 	/**
-	 * 输出调试信息
+	 * 输出路由器调试信息
 	 * 
 	 * @param s
 	 *            要输出的调试信息
@@ -259,12 +253,5 @@ public class Router extends Thread {
 	void debug(String s) {
 		System.out.println(df.format(new Date()) + "\t" + me + "\t" + s);
 	}
-
-	// void debugdv(Entry<Node, DV> entry0) {
-	// for (Entry<Node, RouteInfo> entry : entry0.getValue().infos.entrySet()) {
-	// debug(entry0.getKey().port % 23400 + " " + entry.getKey().port % 23400 +
-	// " " + entry.getValue().dis);
-	// }
-	// }
 
 }

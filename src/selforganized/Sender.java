@@ -9,7 +9,7 @@ import java.io.IOException;
  *
  */
 public class Sender extends Thread {
-	Router router;
+	private final Router router;
 
 	public Sender(Router router) {
 		this.router = router;
