@@ -1,9 +1,6 @@
 package selforganized;
 
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.net.Socket;
-import java.util.Map.Entry;
 
 /**
  * 路由器发送距离向量的线程
@@ -13,7 +10,6 @@ import java.util.Map.Entry;
  */
 public class Sender extends Thread {
 	Router router;
-	DV dv;
 
 	public Sender(Router router) {
 		this.router = router;
@@ -21,28 +17,24 @@ public class Sender extends Thread {
 
 	@Override
 	public void run() {
-		while (true) {
-			try {
-				synchronized (this) {
-					wait(2000);
-				}
-			} catch (InterruptedException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			// 开始发送路由表
-			for (Node info : router.dvs.keySet()) {
+		synchronized (this) {
+			while (true) {
 				try {
-					if (info.equals(router.me))
-						continue;
-					Socket socket = new Socket(info.addr, info.port);
-					ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
-					DV tem = router.dvs.get(router.me);
-					objectOutputStream.writeObject(tem);
-					socket.close();
-//					router.debug("发送距离向量到" + info + "成功");
-				} catch (IOException e) {
-					router.debug("发送距离向量到" + info + "失败: " + e);
+					wait(2000);
+				} catch (InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				// 开始发送路由表
+				for (Node node : router.getNeibours()) {
+					try {
+						if (node.equals(router.getMe()))
+							continue;
+						ObjectUtil.send(node, router.getDV());
+//						router.debug("发送距离向量到" + info + "成功");
+					} catch (IOException e) {
+						router.debug("发送距离向量到" + node + "失败: " + e);
+					}
 				}
 			}
 		}

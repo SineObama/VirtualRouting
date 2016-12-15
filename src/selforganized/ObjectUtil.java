@@ -2,9 +2,13 @@ package selforganized;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.UnknownHostException;
 
 public class ObjectUtil {
 	@SuppressWarnings("unchecked")
@@ -25,5 +29,20 @@ public class ObjectUtil {
 			e.printStackTrace();
 		}
 		return clonedObj;
+	}
+	
+	public static void send(Node node, Object obj) throws UnknownHostException, IOException {
+		Socket socket = new Socket(node.addr, node.port);
+		ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
+		objectOutputStream.writeObject(obj);
+		socket.close();
+	}
+	
+	public static Object receive(ServerSocket serverSocket) throws IOException, ClassNotFoundException {
+		Socket socket = serverSocket.accept();
+		ObjectInputStream objectInputStream = new ObjectInputStream(socket.getInputStream());
+		Object obj = objectInputStream.readObject();
+		socket.close();
+		return obj;
 	}
 }
