@@ -137,28 +137,32 @@ public class Router extends Thread {
 		Node next = info.next;
 		if (info.dis == Integer.MAX_VALUE)
 			return "此节点不可达";
-		Message message = new Message();
-		message.src = me;
-		message.dst = dst;
-		message.sender = me;
-		message.text = msg;
-		try {
-			ObjectUtil.send(next, message);
-		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			cost.replace(next, Integer.MAX_VALUE);
-			debug(next + "不可达");
-			RouteInfo minInfo = getMin(dst);
+		while (true) {
 			try {
-				getDV().infos.replace(next, new RouteInfo(minInfo));
-			} catch (MyException e1) {
-				return "内部错误";
+				Message message = new Message();
+				message.src = me;
+				message.dst = dst;
+				message.sender = me;
+				message.text = msg;
+				ObjectUtil.send(next, message);
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				cost.replace(next, Integer.MAX_VALUE);
+				debug("下一节点" + next + "不可达。将查找其他路径");
+				RouteInfo minInfo = getMin(dst);
+				try {
+					getDV().infos.replace(next, new RouteInfo(minInfo));
+				} catch (MyException e1) {
+					return "内部错误";
+				}
+				if (minInfo.dis == Integer.MAX_VALUE)
+					return "目前无法到达目标节点";
+				next = minInfo.next;
 			}
-			
+			return "成功发送报文到下一节点：" + next;
 		}
-		return "成功发送报文到下一节点：" + next;
 	}
 
 	private RouteInfo getMin(Node dst) {
