@@ -1,5 +1,6 @@
 /client*.txt
 /*.bat
+!/jar.bat
 *.class
 target/
 
