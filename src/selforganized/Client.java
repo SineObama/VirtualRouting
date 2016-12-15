@@ -38,20 +38,21 @@ public class Client {
 					if (tokens.length < 2)
 						throw new MyException("sendÖ¸Áî¸ñÊ½´íÎó");
 					tokens = tokens[1].split(" ", 2);
-					String msg = null;
+					String text = null;
 					if (tokens.length == 2)
-						msg = tokens[1];
+						text = tokens[1];
 					else
-						msg = "";
+						text = "";
 					Node node = new Node(tokens[0]);
-					router.send(node, msg);
+					String msg = router.send(node, text);
+					sysout(msg);
 					break;
 
 				default:
 					break;
 				}
 			} catch (MyException e) {
-				System.out.println(e.getMessage());
+				sysout(e.getMessage());
 			} catch (UnknownHostException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -65,4 +66,7 @@ public class Client {
 		}
 	}
 
+	public static void sysout(String msg) {
+		System.out.println(msg);
+	}
 }

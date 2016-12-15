@@ -98,7 +98,7 @@ public class Router extends Thread {
 				} else if (obj instanceof Message) {
 					Message message = (Message) obj;
 					if (message.dst.equals(me)) {
-						debug("收到来自" + message.src + "的报文：" + message.text);
+						Client.sysout("收到来自" + message.src + "的报文：\n" + message.text);
 						continue;
 					}
 					debug("收到来自" + message.sender + "转发的报文");
@@ -125,20 +125,24 @@ public class Router extends Thread {
 	 *            接收节点
 	 * @param msg
 	 *            信息
+	 * @return 反馈信息
 	 * @throws IOException
 	 * @throws UnknownHostException
 	 */
-	public void send(Node node, String msg) throws UnknownHostException, IOException {
-		Node next = getDV().infos.get(node).next;
+	public String send(Node node, String msg) throws UnknownHostException, IOException {
+		RouteInfo info = getDV().infos.get(node);
+		Node next = info.next;
 		if (next == null)
-			debug("路由表中没有此节点信息，无法发送");
+			return "路由表中没有此节点信息，无法发送";
+		if (info.dis == Integer.MAX_VALUE)
+			return "此节点不可达";
 		Message message = new Message();
 		message.src = me;
 		message.dst = node;
 		message.sender = me;
 		message.text = msg;
 		ObjectUtil.send(next, message);
-		debug("成功发送报文，下一节点：" + next);
+		return "成功发送报文到下一节点：" + next;
 	}
 
 	void refresh(DV dv) throws MyException {

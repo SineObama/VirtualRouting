@@ -25,16 +25,23 @@ public class Node implements Comparable<Node>, Serializable {
 		if (strings.length != 2)
 			throw new MyException("节点格式错误");
 		addr = strings[0];
+		if (addr.length() == 0)// 省略地址则默认本机
+			addr = "127.0.0.1";
 		port = Integer.parseInt(strings[1]);
 	}
 
 	/**
 	 * 创建节点。
-	 * @param address 字符串地址。如"127.0.0.1"
-	 * @param port 端口号。
+	 * 
+	 * @param address
+	 *            字符串地址。如"127.0.0.1"
+	 * @param port
+	 *            端口号。
 	 */
 	public Node(String address, int port) {
 		this.addr = address;
+		if (addr.length() == 0)// 省略地址则默认本机
+			addr = "127.0.0.1";
 		this.port = port;
 	}
 
