@@ -122,7 +122,7 @@ public class Router extends Thread {
 	/**
 	 * 发送信息到另一个节点
 	 * 
-	 * @param node
+	 * @param dst
 	 *            接收节点
 	 * @param msg
 	 *            信息
@@ -130,25 +130,61 @@ public class Router extends Thread {
 	 * @throws IOException
 	 * @throws UnknownHostException
 	 */
-	public String send(Node node, String msg) throws UnknownHostException, IOException {
-		RouteInfo info = getDV().infos.get(node);
-		Node next = info.next;
-		if (next == null)
+	public String send(Node dst, String msg) {
+		RouteInfo info = getDV().infos.get(dst);
+		if (info == null)
 			return "路由表中没有此节点信息，无法发送";
+		Node next = info.next;
 		if (info.dis == Integer.MAX_VALUE)
 			return "此节点不可达";
 		Message message = new Message();
 		message.src = me;
-		message.dst = node;
+		message.dst = dst;
 		message.sender = me;
 		message.text = msg;
-		ObjectUtil.send(next, message);
+		try {
+			ObjectUtil.send(next, message);
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			cost.replace(next, Integer.MAX_VALUE);
+			debug(next + "不可达");
+			RouteInfo minInfo = getMin(dst);
+			try {
+				getDV().infos.replace(next, new RouteInfo(minInfo));
+			} catch (MyException e1) {
+				return "内部错误";
+			}
+			
+		}
 		return "成功发送报文到下一节点：" + next;
 	}
 
-	void refresh(DV dv) throws MyException {
+	private RouteInfo getMin(Node dst) {
+		RouteInfo minInfo = new RouteInfo(null, Integer.MAX_VALUE);
+		synchronized (cost) {
+			for (Entry<Node, Integer> n : cost.entrySet()) { // 遍历邻居
+				DV curDV = dvs.get(n.getKey());
+				int curDis = n.getValue() + curDV.infos.get(dst).dis;
+				if (curDis < 0) // 溢出表明不可达
+					curDis = Integer.MAX_VALUE;
+				if (minInfo.dis > curDis) {
+					minInfo.dis = curDis;
+					minInfo.next = new Node(n.getKey());
+				}
+			}
+		}
+		return minInfo;
+	}
+
+	private void refresh(final DV dv) throws MyException {
 		final Node neibour = dv.node;
-		final int disToNeibour = cost.get(neibour);
+		int tem;
+		synchronized (cost) {
+			tem = cost.get(neibour);
+		}
+		final int disToNeibour = tem;
 		DV myDv = getDV();
 		DV neibourDV = dvs.get(neibour);
 		boolean changed = false;
@@ -163,7 +199,9 @@ public class Router extends Thread {
 			// 单独处理邻居到自己的代价更新
 			if (dst.equals(me)) {
 				if (disToNeibour != dis) {
-					cost.replace(neibour, dis);
+					synchronized (cost) {
+						cost.replace(neibour, dis);
+					}
 					myDv.infos.get(neibour).dis = dis;
 					neibourDV.infos.replace(me, new RouteInfo(newInfo.next, dis));
 					changed = true;
@@ -176,11 +214,11 @@ public class Router extends Thread {
 			final RouteInfo oldInfo = neibourDV.infos.get(dst);
 			if (oldInfo != null && oldInfo.equals(newInfo))
 				continue;
-			
+
 			// 添加或更改
 			neibourDV.infos.replace(dst, new RouteInfo(newInfo));
 			debug("更新从邻居" + neibour + "到" + dst + "的代价为" + showCost(dis));
-			
+
 			// 检查自身的距离向量是否需要更新。分2种情况
 			final RouteInfo myInfo = myDv.infos.get(dst);
 
@@ -193,21 +231,12 @@ public class Router extends Thread {
 				myInfo.next = new Node(neibour);
 				debug("更新自己经由" + myInfo.next + "到" + dst + "的代价为" + showCost(myInfo.dis));
 			} else if (myInfo.next.equals(neibour) && myInfo.dis < totalDis) { // 原路径代价增加
-				int origin = myInfo.dis;
-				myInfo.dis = totalDis;  // 假定还按原路进行
-				for (Entry<Node, Integer> n : cost.entrySet()) { // 遍历邻居
-					DV curDV = dvs.get(n.getKey());
-					int curDis = n.getValue() + curDV.infos.get(dst).dis;
-					if (curDis < 0) // 溢出表明不可达
-						curDis = Integer.MAX_VALUE;
-					if (myInfo.dis > curDis) {
-						myInfo.dis = curDis;
-						myInfo.next = new Node(n.getKey());
-					}
-				}
-				debug("更新自己经由" + myInfo.next + "到" + dst + "的代价为" + myInfo.dis);
-				if (origin != myInfo.dis) // 需要更新距离向量
+				RouteInfo minInfo = getMin(dst);
+				if (minInfo.dis != myInfo.dis) // 需要更新距离向量
 					changed = true;
+				myInfo.dis = minInfo.dis;
+				myInfo.next = new Node(minInfo.next);
+				debug("更新自己经由" + myInfo.next + "到" + dst + "的代价为" + myInfo.dis);
 			}
 		}
 

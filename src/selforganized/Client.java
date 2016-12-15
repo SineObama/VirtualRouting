@@ -1,8 +1,6 @@
 package selforganized;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.Scanner;
 
 public class Client {
@@ -48,17 +46,16 @@ public class Client {
 					sysout(msg);
 					break;
 
+				case "set":
+					break;
+
 				default:
+					if (line.length() != 0)
+						sysout("÷∏¡Ó¥ÌŒÛ");
 					break;
 				}
 			} catch (MyException e) {
 				sysout(e.getMessage());
-			} catch (UnknownHostException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
