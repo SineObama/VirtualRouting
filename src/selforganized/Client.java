@@ -3,6 +3,11 @@ package selforganized;
 import java.io.File;
 import java.util.Scanner;
 
+import selforganized.exception.MyException;
+import selforganized.router.IRouter;
+import selforganized.router.Router;
+import selforganized.router.struct.Node;
+
 public class Client {
 
 	static final String prefix = "client";

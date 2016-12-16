@@ -10,9 +10,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
+import selforganized.router.struct.Node;
+
 public class ObjectUtil {
 	@SuppressWarnings("unchecked")
 	public static <T extends Serializable> T clone(T obj) {
+		if (obj == null)
+			return null;
 		T clonedObj = null;
 		try {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -30,14 +34,14 @@ public class ObjectUtil {
 		}
 		return clonedObj;
 	}
-	
+
 	public static void send(Node node, Object obj) throws UnknownHostException, IOException {
 		Socket socket = new Socket(node.addr, node.port);
 		ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
 		objectOutputStream.writeObject(obj);
 		socket.close();
 	}
-	
+
 	public static Object receive(ServerSocket serverSocket) throws IOException, ClassNotFoundException {
 		Socket socket = serverSocket.accept();
 		ObjectInputStream objectInputStream = new ObjectInputStream(socket.getInputStream());

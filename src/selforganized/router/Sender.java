@@ -1,6 +1,9 @@
-package selforganized;
+package selforganized.router;
 
 import java.io.IOException;
+
+import selforganized.ObjectUtil;
+import selforganized.router.struct.Node;
 
 /**
  * 路由器发送距离向量的线程
@@ -9,6 +12,8 @@ import java.io.IOException;
  *
  */
 public class Sender extends Thread {
+
+	private final DVdao dao = DVdao.getInstance();
 	private final Router router;
 
 	public Sender(Router router) {
@@ -18,6 +23,12 @@ public class Sender extends Thread {
 	@Override
 	public void run() {
 		synchronized (this) {
+			try {
+				wait(); // 用于提前创建线程，但与路由器一同开始
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 			while (true) {
 				try {
 					wait(2000);
@@ -26,18 +37,19 @@ public class Sender extends Thread {
 					e1.printStackTrace();
 				}
 				// 开始发送路由表
-				for (Node node : router.getNeibours()) {
+				for (Node node : dao.getNeibour()) {
 					try {
-						if (node.equals(router.getMe()))
+						if (node.equals(router.me))
 							continue;
-						ObjectUtil.send(node, router.getDV());
-//						router.debug("发送距离向量到" + info + "成功");
+						ObjectUtil.send(node, dao.getDV(router.me));
 					} catch (IOException e) {
 						router.debug("发送距离向量到" + node + "失败: " + e);
+						// TODO 修改路由表？
 					}
 				}
 			}
 		}
 
 	}
+
 }
