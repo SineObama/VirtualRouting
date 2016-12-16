@@ -39,8 +39,10 @@ public class Client {
 				String[] tokens = line.split(" ", 2);
 				switch (tokens[0]) {
 				case "send":
-					if (tokens.length < 2)
-						throw new MyException("send指令格式错误");
+					if (tokens.length < 2) {
+						sysout("指令格式：send [address]:[port] [text]");
+						break;
+					}
 					tokens = tokens[1].split(" ", 2);
 					String text = null;
 					if (tokens.length == 2)
@@ -53,6 +55,10 @@ public class Client {
 					break;
 
 				case "set":
+					if (tokens.length < 2) {
+						sysout("指令格式：set [address]:[port] [positive integer]");
+						break;
+					}
 					break;
 
 				default:

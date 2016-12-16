@@ -240,9 +240,11 @@ public class Router extends Thread implements IRouter {
 	}
 
 	@Override
-	public void change(Node neibour, int dis) {
-		// TODO Auto-generated method stub
-		
+	public String change(Node neibour, int dis) {
+		if (!dao.getNeibours().contains(neibour))
+			return "此节点不是邻居，不能修改距离";
+		dao.replace(neibour, new Distance(dis));
+		return "修改成功";
 	}
 
 	// helpers
