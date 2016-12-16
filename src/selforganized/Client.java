@@ -1,10 +1,11 @@
 package selforganized;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Scanner;
 
+import selforganized.exception.FormatException;
 import selforganized.exception.MyException;
-import selforganized.router.IRouter;
 import selforganized.router.Router;
 import selforganized.router.struct.Node;
 
@@ -13,7 +14,7 @@ public class Client {
 	static final String prefix = "client";
 	static final String postfix = ".txt";
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws NumberFormatException, FormatException, IOException {
 		// 从参数读取配置文件根目录与文件名后缀
 		int i = 0;
 		String path = "./";

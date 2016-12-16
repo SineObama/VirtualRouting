@@ -3,6 +3,7 @@ package selforganized.router;
 import java.io.IOException;
 
 import selforganized.ObjectUtil;
+import selforganized.router.struct.DVMessage;
 import selforganized.router.struct.Node;
 
 /**
@@ -37,13 +38,14 @@ public class Sender extends Thread {
 					e1.printStackTrace();
 				}
 				// 开始发送路由表
-				for (Node node : dao.getNeibour()) {
+				for (Node neibour : dao.getNeibours()) {
 					try {
-						if (node.equals(router.me))
-							continue;
-						ObjectUtil.send(node, dao.getDV(router.me));
+						DVMessage message = new DVMessage();
+						message.sender = dao.getMe();
+						message.dv = dao.getDV();
+						ObjectUtil.send(neibour, message);
 					} catch (IOException e) {
-						router.debug("发送距离向量到" + node + "失败: " + e);
+						router.debug("发送距离向量到" + neibour + "失败: " + e);
 						// TODO 修改路由表？
 					}
 				}

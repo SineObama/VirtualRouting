@@ -10,7 +10,6 @@ import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
 
 import selforganized.Client;
@@ -18,6 +17,7 @@ import selforganized.ObjectUtil;
 import selforganized.exception.FormatException;
 import selforganized.exception.MyException;
 import selforganized.router.struct.DV;
+import selforganized.router.struct.DVMessage;
 import selforganized.router.struct.Distance;
 import selforganized.router.struct.Message;
 import selforganized.router.struct.Node;
@@ -68,7 +68,7 @@ public class Router extends Thread implements IRouter {
 		DV myDV = ObjectUtil.clone(initDV);
 		for (Entry<Node, Integer> entry : cost.entrySet())
 			myDV.replace(entry.getKey(), new RouteInfo(entry.getKey(), entry.getValue()));
-		dao.add(me, myDV);
+		dao.setDV(myDV);
 		// 创建发送线程
 		sender = new Sender(this);
 		sender.start();
@@ -77,7 +77,9 @@ public class Router extends Thread implements IRouter {
 
 	@Override
 	public void run() {
-		sender.notify();
+		synchronized (sender) {
+			sender.notify();
+		}
 
 		// 开始监听
 		ServerSocket serverSocket = null;
@@ -85,11 +87,11 @@ public class Router extends Thread implements IRouter {
 			serverSocket = new ServerSocket(dao.getMe().port);
 			while (true) {
 				Object obj = ObjectUtil.receive(serverSocket);
-				if (obj instanceof DV) {
-					DV dv = (DV) obj;
-					// debug("收到来自" + dv.node + "的距离向量");
+				if (obj instanceof DVMessage) {
+					DVMessage message = (DVMessage) obj;
+//					debug("收到来自" + message.sender + "的距离向量");
 					synchronized (sender) {
-						refresh(dv);
+						refresh(message.sender, message.dv);
 					}
 				} else if (obj instanceof Message) {
 					Message message = (Message) obj;
@@ -177,7 +179,7 @@ public class Router extends Thread implements IRouter {
 	 */
 	private RouteInfo getMin(Node dst) {
 		RouteInfo minInfo = RouteInfo.getUnreachable();
-		for (Node neibour : dao.getNeibour()) { // 遍历邻居
+		for (Node neibour : dao.getNeibours()) { // 遍历邻居
 			Distance totalDis = Distance.add(dao.get(neibour).dis, dao.get(neibour, dst).dis);
 			if (minInfo.dis.compareTo(totalDis) > 0)
 				minInfo = new RouteInfo(neibour, totalDis);
@@ -190,7 +192,6 @@ public class Router extends Thread implements IRouter {
 		DV myDv = dao.getDV();
 		DV neibourDV = dao.getDV(neibour);
 		boolean changed = false;
-
 		for (final Entry<Node, RouteInfo> entry : dv.entrySet()) {
 			final Node dst = entry.getKey();
 			final RouteInfo newInfo = entry.getValue();
@@ -200,11 +201,11 @@ public class Router extends Thread implements IRouter {
 
 			// 单独处理邻居到自己的代价更新
 			if (dst.equals(dao.getMe())) {
-				if (disToNeibour.equals(dis)) {
+				if (disToNeibour.compareTo(dis) > 0) {
 					dao.replace(neibour, dst, newInfo);
 					dao.replace(neibour, dis);
 					changed = true;
-					debug("更新邻居" + neibour + "和自己之间的代价为" + dis));
+					debug("更新邻居" + neibour + "和自己之间的代价为" + dis);
 				}
 				continue;
 			}
@@ -215,39 +216,33 @@ public class Router extends Thread implements IRouter {
 				continue;
 
 			// 添加或更改
-			neibourDV.infos.replace(dst, new RouteInfo(newInfo));
-			debug("更新从邻居" + neibour + "到" + dst + "的代价为" + showCost(dis));
+			dao.replace(neibour, dst, newInfo);
+			debug("更新从邻居" + neibour + "到" + dst + "的代价为" + dis);
 
 			// 检查自身的距离向量是否需要更新。分2种情况
-			final RouteInfo myInfo = myDv.infos.get(dst);
-
-			int totalDis = disToNeibour + dis;
-			if (totalDis < 0) // 溢出表明不可达
-				totalDis = Integer.MAX_VALUE;
-
-			if (myInfo.dis > totalDis) { // 代价变小
-				myInfo.dis = totalDis;
-				myInfo.next = new Node(neibour);
-				debug("更新自己经由" + myInfo.next + "到" + dst + "的代价为" + showCost(myInfo.dis));
-			} else if (myInfo.next.equals(neibour) && myInfo.dis < totalDis) { // 原路径代价增加
+			final RouteInfo myInfo = myDv.get(dst);
+			Distance totalDis = Distance.add(disToNeibour, dis);
+			if (myInfo.dis.compareTo(totalDis) > 0) { // 代价变小
+				dao.replace(dst, new RouteInfo(neibour, totalDis));
+				debug("更新自己经由" + neibour + "到" + dst + "的代价为" + totalDis);
+			} else if (myInfo.next.equals(neibour) && myInfo.dis.compareTo(totalDis) < 0) { // 原路径代价增加
 				RouteInfo minInfo = getMin(dst);
-				if (minInfo.dis != myInfo.dis) // 需要更新距离向量
+				if (!minInfo.dis.equals(myInfo.dis)) // 需要更新距离向量
 					changed = true;
-				myInfo.dis = minInfo.dis;
-				myInfo.next = new Node(minInfo.next);
-				debug("更新自己经由" + myInfo.next + "到" + dst + "的代价为" + myInfo.dis);
+				dao.replace(dst, minInfo);
+				debug("更新自己经由" + minInfo.next + "到" + dst + "的代价为" + minInfo.dis);
 			}
 		}
 
 		// 路由表改变后立即发送最新路由表给邻居
-		if (changed)
-			sender.notify();
+		 if (changed)
+		 sender.notify();
 	}
 
 	@Override
 	public void change(Node neibour, int dis) {
 		// TODO Auto-generated method stub
-
+		
 	}
 
 	// helpers
@@ -258,8 +253,8 @@ public class Router extends Thread implements IRouter {
 	 * @param s
 	 *            要输出的调试信息
 	 */
-	void debug(String s) {
-		System.out.println(df.format(new Date()) + "\t" + me + "\t" + s);
+	void debug(Object s) {
+		System.out.println(df.format(new Date()) + "\t" + dao.getMe() + "\t" + s);
 	}
 
 }

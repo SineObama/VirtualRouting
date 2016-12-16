@@ -41,6 +41,10 @@ public class DVdao {
 		return ObjectUtil.clone(myDv);
 	}
 
+	public synchronized void setDV(DV dv) {
+		myDv = dv;
+	}
+
 	public synchronized DV getDV(Node node) {
 		return ObjectUtil.clone(neibourDVs.get(node));
 	}
@@ -65,7 +69,7 @@ public class DVdao {
 		neibourDVs.get(neibour).replace(dst, info);
 	}
 
-	public synchronized Set<Node> getNeibour() {
+	public synchronized Set<Node> getNeibours() {
 		return neibourDVs.keySet();
 	}
 }

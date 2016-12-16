@@ -36,7 +36,9 @@ public class RouteInfo implements Serializable, Comparable<RouteInfo> {
 			return true;
 		if (obj instanceof RouteInfo) {
 			RouteInfo o = (RouteInfo) obj;
-			return next.equals(o.next) && dis == o.dis;
+			if (next == null)
+				return o.next == null && dis.equals(o.dis);
+			return next.equals(o.next) && dis.equals(o.dis);
 		}
 		return false;
 	}
