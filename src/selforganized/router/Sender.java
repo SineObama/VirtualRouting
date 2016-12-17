@@ -14,7 +14,7 @@ import selforganized.router.struct.Node;
  */
 public class Sender extends Thread {
 
-	private final DVdao dao = DVdao.getInstance();
+	private final DVService dao = DVService.getInstance();
 	private final Router router;
 
 	public Sender(Router router) {
@@ -44,7 +44,7 @@ public class Sender extends Thread {
 						message.sender = dao.getMe();
 						message.dv = dao.getDV();
 						ObjectUtil.send(neibour, message);
-						router.debug("发送距离向量到" + neibour + "成功");
+//						router.debug("发送距离向量到" + neibour + "成功");
 					} catch (IOException e) {
 						router.debug("发送距离向量到" + neibour + "失败: " + e);
 						// TODO 修改路由表？

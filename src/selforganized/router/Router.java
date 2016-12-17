@@ -29,7 +29,7 @@ public class Router extends Thread implements IRouter {
 
 	private final Sender sender;
 	final static SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");
-	private final static DVdao dao = DVdao.getInstance();
+	private final static DVService dao = DVService.getInstance();
 
 	public Router(File file) throws NumberFormatException, FormatException, IOException {
 
@@ -68,6 +68,7 @@ public class Router extends Thread implements IRouter {
 		DV myDV = ObjectUtil.clone(initDV);
 		for (Entry<Node, Integer> entry : cost.entrySet())
 			myDV.replace(entry.getKey(), new RouteInfo(entry.getKey(), entry.getValue()));
+		myDV.replace(me, new RouteInfo(me, 0));
 		dao.setDV(myDV);
 		// 创建发送线程
 		sender = new Sender(this);
@@ -89,7 +90,7 @@ public class Router extends Thread implements IRouter {
 				Object obj = ObjectUtil.receive(serverSocket);
 				if (obj instanceof DVMessage) {
 					DVMessage message = (DVMessage) obj;
-					debug("收到来自" + message.sender + "的距离向量");
+					// debug("收到来自" + message.sender + "的距离向量");
 					synchronized (sender) {
 						refresh(message.sender, message.dv);
 					}
@@ -191,33 +192,46 @@ public class Router extends Thread implements IRouter {
 		final Distance disToNeibour = dao.get(neibour).dis;
 		DV myDv = dao.getDV();
 		DV neibourDV = dao.getDV(neibour);
-		boolean changed = false;
+		boolean changed = false; // 标记自己的路由表是否改变
 		for (final Entry<Node, RouteInfo> entry : dv.entrySet()) {
 			final Node dst = entry.getKey();
 			final RouteInfo newInfo = entry.getValue();
 			final Distance dis = newInfo.dis;
-			if (dst.equals(neibour)) // 忽略邻居到邻居自身的条目
-				continue;
+			// if (dst.equals(neibour)) // 忽略邻居到邻居自身的条目
+			// continue;
 
-			// 单独处理邻居到自己的代价更新
-			if (dst.equals(dao.getMe())) {
-				if (disToNeibour.compareTo(dis) > 0) {
-					dao.replace(neibour, dst, newInfo);
-					dao.replace(neibour, dis);
+			final RouteInfo oldInfo = neibourDV.get(dst);
+			if (oldInfo == null || !oldInfo.equals(newInfo)) {
+				dao.replace(neibour, dst, newInfo);
+				if (!dst.equals(dao.getMe())) {
+					debug("更新从邻居" + neibour + "到" + dst + "的代价为" + dis);
+				} else if (disToNeibour.compareTo(dis) > 0) {
+					debug(dst);
+					dao.replace(neibour, new RouteInfo(dst, dis));
 					changed = true;
 					debug("更新邻居" + neibour + "和自己之间的代价为" + dis);
 				}
-				continue;
 			}
 
-			// 更新邻居的距离向量
-			final RouteInfo oldInfo = neibourDV.get(dst);
-			if (oldInfo != null && oldInfo.equals(newInfo))
-				continue;
-
-			// 添加或更改
-			dao.replace(neibour, dst, newInfo);
-			debug("更新从邻居" + neibour + "到" + dst + "的代价为" + dis);
+			// // 单独处理邻居到自己的代价更新
+			// if (dst.equals(dao.getMe())) {
+			// if (disToNeibour.compareTo(dis) > 0) {
+			// dao.replace(neibour, dst, newInfo);
+			// dao.replace(neibour, dis);
+			// changed = true;
+			// debug("更新邻居" + neibour + "和自己之间的代价为" + dis);
+			// }
+			// continue;
+			// }
+			//
+			// // 更新邻居的距离向量
+			// final RouteInfo oldInfo = neibourDV.get(dst);
+			// if (oldInfo != null && oldInfo.equals(newInfo))
+			// continue;
+			//
+			// // 添加或更改
+			// dao.replace(neibour, dst, newInfo);
+			// debug("更新从邻居" + neibour + "到" + dst + "的代价为" + dis);
 
 			// 检查自身的距离向量是否需要更新。分2种情况
 			final RouteInfo myInfo = myDv.get(dst);
@@ -235,8 +249,8 @@ public class Router extends Thread implements IRouter {
 		}
 
 		// 路由表改变后立即发送最新路由表给邻居
-		 if (changed)
-		 sender.notify();
+		if (changed)
+			sender.notify();
 	}
 
 	@Override

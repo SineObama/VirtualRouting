@@ -10,15 +10,15 @@ import selforganized.router.struct.Distance;
 import selforganized.router.struct.Node;
 import selforganized.router.struct.RouteInfo;
 
-public class DVdao {
+public class DVService {
 
 	private Node me = null;
 	private boolean hadSet = false;
 	private DV myDv;
 	private Map<Node, DV> neibourDVs = new TreeMap<>();
-	private static DVdao instance = new DVdao();
+	private static DVService instance = new DVService();
 
-	public static DVdao getInstance() {
+	public static DVService getInstance() {
 		return instance;
 	}
 
