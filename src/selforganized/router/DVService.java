@@ -61,8 +61,11 @@ public class DVService {
 		bufferedReader.close();
 		if (me == null)
 			throw new MyException("配置文件错误：没有本地节点");
-		for (Node neighbor : cost.keySet())
-			neighborDVs.put(neighbor, ObjectUtil.clone(initDV));
+		for (Node neighbor : cost.keySet()) {
+			DV dv = ObjectUtil.clone(initDV);
+			dv.replace(neighbor, new RouteInfo(neighbor, new Distance(0)));
+			neighborDVs.put(neighbor, dv);
+		}
 
 		// 自己的距离向量。更新邻居的距离
 		myDV = ObjectUtil.clone(initDV);
@@ -115,7 +118,7 @@ public class DVService {
 		Distance newDis = new Distance(dis);
 		cost.replace(neighbor, newDis);
 		debug("更新自己到邻居" + neighbor + "直接距离为" + newDis);
-		RouteInfo oldInfo =myDV.get(neighbor);
+		RouteInfo oldInfo = myDV.get(neighbor);
 		if (oldInfo.dis.compareTo(newDis) < 0 && !neighbor.equals(oldInfo.next))
 			return false;
 		myDV.replace(neighbor, new RouteInfo(neighbor, newDis));
