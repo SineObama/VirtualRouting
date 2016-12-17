@@ -84,9 +84,10 @@ public class DVService {
 		return ObjectUtil.clone(myDV.get(dst));
 	}
 
-//	private synchronized void replace(Node neibour, Node dst, RouteInfo info) {
-//		neighborDVs.get(neibour).replace(dst, info);
-//	}
+	// private synchronized void replace(Node neibour, Node dst, RouteInfo info)
+	// {
+	// neighborDVs.get(neibour).replace(dst, info);
+	// }
 
 	public boolean isNeighbor(Node node) {
 		return cost.containsKey(node);
@@ -111,9 +112,15 @@ public class DVService {
 			throw new MyException("不是邻居，无法修改");
 		if (dis <= 0 && dis != -1)
 			throw new MyException("邻居距离必须是正数或-1表示无穷");
-		cost.replace(neighbor, new Distance(dis));
-		check(neighbor, me, new Distance(dis));
-		return false;
+		Distance newDis = new Distance(dis);
+		cost.replace(neighbor, newDis);
+		debug("更新自己到邻居" + neighbor + "直接距离为" + newDis);
+		RouteInfo oldInfo =myDV.get(neighbor);
+		if (oldInfo.dis.compareTo(newDis) < 0 && !neighbor.equals(oldInfo.next))
+			return false;
+		myDV.replace(neighbor, new RouteInfo(neighbor, newDis));
+		debug("更新自己到邻居" + neighbor + "的距离为" + newDis);
+		return true;
 	}
 
 	public synchronized boolean refresh(Node neighbor, Entry<Node, RouteInfo> entry) throws MyException {
@@ -130,44 +137,16 @@ public class DVService {
 		final RouteInfo oldInfo = neighborDV.get(dst);
 		if (oldInfo == null || !oldInfo.equals(newInfo)) {
 			neighborDVs.get(neighbor).replace(dst, newInfo);
-			// if (!dst.equals(me)) {
 			debug("更新从邻居" + neighbor + "到" + dst + "的代价为" + dis);
-			// } else {
-			// cost.replace(neighbor, dis);// FIXME
-			// if (disToNeibour.compareTo(dis) > 0) {
-			// myDV.replace(neighbor, new RouteInfo(dst, dis));
-			// changed = true;
-			// debug("更新邻居" + neighbor + "和自己之间的代价为" + dis);
-			// }
-			// }
 		}
 
-		return check(neighbor, dst, dis);
-		// 检查自身的距离向量是否需要更新。分2种情况
-		// final RouteInfo myInfo = myDV.get(dst);
-		// final Distance totalDis = Distance.add(disToNeibour, dis);
-		// if (myInfo.dis.compareTo(totalDis) > 0) { // 代价变小
-		// myDV.replace(dst, new RouteInfo(neighbor, totalDis));
-		// debug("更新自己经由" + neighbor + "到" + dst + "的代价为" + totalDis);
-		// } else if (myInfo.next.equals(neighbor) &&
-		// myInfo.dis.compareTo(totalDis) < 0) { // 原路径代价增加
-		// RouteInfo minInfo = getMin(dst);
-		// if (!minInfo.dis.equals(myInfo.dis)) // 需要更新距离向量
-		// changed = true;
-		// myDV.replace(dst, minInfo);
-		// debug("更新自己经由" + minInfo.next + "到" + dst + "的代价为" + minInfo.dis);
-		// }
-		// return changed;
-	}
-
-	private synchronized boolean check(Node neighbor, Node dst, Distance dis) {
 		boolean changed = false;
 		final RouteInfo myInfo = myDV.get(dst);
 		final Distance totalDis = Distance.add(myDV.get(neighbor).dis, dis);
 		if (myInfo.dis.compareTo(totalDis) > 0) { // 代价变小
 			myDV.replace(dst, new RouteInfo(neighbor, totalDis));
 			debug("更新自己经由" + neighbor + "到" + dst + "的代价为" + totalDis);
-		} else if (myInfo.next.equals(neighbor) && myInfo.dis.compareTo(totalDis) < 0) { // 原路径代价增加
+		} else if (neighbor.equals(myInfo.next) && myInfo.dis.compareTo(totalDis) < 0) { // 原路径代价增加
 			RouteInfo minInfo = getMin(dst);
 			if (!minInfo.dis.equals(myInfo.dis)) // 需要更新距离向量
 				changed = true;
