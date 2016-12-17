@@ -4,10 +4,13 @@ import java.io.Serializable;
 
 public class Distance implements Serializable, Comparable<Distance> {
 	private static final long serialVersionUID = 7134243725393718049L;
-	private int dis;
+	private int dis = 0;
 
 	public Distance(int dis) {
-		this.dis = dis;
+		if (dis >= 0)
+			this.dis = dis;
+		else
+			this.dis = Integer.MAX_VALUE;
 	}
 
 	public Distance(Distance dis) {

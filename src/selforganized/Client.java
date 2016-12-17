@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;
 
-import selforganized.exception.FormatException;
 import selforganized.exception.MyException;
 import selforganized.router.Router;
 import selforganized.router.struct.Node;
@@ -13,8 +12,10 @@ public class Client {
 
 	static final String prefix = "client";
 	static final String postfix = ".txt";
+	static final String sendFormat = "send [address]:[port] [text]";
+	static final String setFormat = "set [neibour address]:[port] [positive integer]|-1";
 
-	public static void main(String[] args) throws NumberFormatException, FormatException, IOException {
+	public static void main(String[] args) throws NumberFormatException, IOException, MyException {
 		// 从参数读取配置文件根目录与文件名后缀
 		int i = 0;
 		String path = "./";
@@ -40,7 +41,7 @@ public class Client {
 				switch (tokens[0]) {
 				case "send":
 					if (tokens.length < 2) {
-						sysout("指令格式：send [address]:[port] [text]");
+						sysout("指令格式：" + sendFormat);
 						break;
 					}
 					tokens = tokens[1].split(" ", 2);
@@ -56,12 +57,12 @@ public class Client {
 
 				case "set":
 					if (tokens.length < 2) {
-						sysout("指令格式：set [address]:[port] [positive integer]");
+						sysout("指令格式：" + setFormat);
 						break;
 					}
 					tokens = tokens[1].split(" ");
 					if (tokens.length != 2) {
-						sysout("指令格式：set [neibour address]:[port] [positive integer]");
+						sysout("指令格式：" + setFormat);
 						break;
 					}
 					Node neibour = new Node(tokens[0]);
@@ -72,8 +73,8 @@ public class Client {
 
 				case "?":
 					sysout("指令：");
-					sysout("send [address]:[port] [text]");
-					sysout("set [address]:[port] [positive integer]");
+					sysout(sendFormat);
+					sysout(setFormat);
 					break;
 
 				default:

@@ -15,11 +15,6 @@ public class RouteInfo implements Serializable, Comparable<RouteInfo> {
 	public Node next;
 	public Distance dis;
 
-	public RouteInfo(RouteInfo o) {
-		this.next = ObjectUtil.clone(o.next);
-		this.dis = o.dis;
-	}
-
 	public RouteInfo(Node next, int dis) {
 		this.next = ObjectUtil.clone(next);
 		this.dis = new Distance(dis);

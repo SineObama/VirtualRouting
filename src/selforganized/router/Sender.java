@@ -14,11 +14,8 @@ import selforganized.router.struct.Node;
  */
 public class Sender extends Thread {
 
-	private final DVService dao = DVService.getInstance();
-	private final Router router;
-
-	public Sender(Router router) {
-		this.router = router;
+	private final DVService service = DVService.getInstance();
+	public Sender() {
 	}
 
 	@Override
@@ -38,15 +35,15 @@ public class Sender extends Thread {
 					e1.printStackTrace();
 				}
 				// 开始发送路由表
-				for (Node neibour : dao.getNeibours()) {
+				for (Node neibour : service.getNeighbors()) {
 					try {
 						DVMessage message = new DVMessage();
-						message.sender = dao.getMe();
-						message.dv = dao.getDV();
+						message.sender = service.getMe();
+						message.dv = service.getDV();
 						ObjectUtil.send(neibour, message);
-//						router.debug("发送距离向量到" + neibour + "成功");
+						// service.debug("发送距离向量到" + neibour + "成功");
 					} catch (IOException e) {
-						router.debug("发送距离向量到" + neibour + "失败: " + e);
+						service.debug("发送距离向量到" + neibour + "失败: " + e);
 						// TODO 修改路由表？
 					}
 				}
