@@ -44,6 +44,7 @@ public class Sender extends Thread {
 						message.sender = dao.getMe();
 						message.dv = dao.getDV();
 						ObjectUtil.send(neibour, message);
+						router.debug("发送距离向量到" + neibour + "成功");
 					} catch (IOException e) {
 						router.debug("发送距离向量到" + neibour + "失败: " + e);
 						// TODO 修改路由表？

@@ -89,7 +89,7 @@ public class Router extends Thread implements IRouter {
 				Object obj = ObjectUtil.receive(serverSocket);
 				if (obj instanceof DVMessage) {
 					DVMessage message = (DVMessage) obj;
-//					debug("收到来自" + message.sender + "的距离向量");
+					debug("收到来自" + message.sender + "的距离向量");
 					synchronized (sender) {
 						refresh(message.sender, message.dv);
 					}
@@ -244,6 +244,9 @@ public class Router extends Thread implements IRouter {
 		if (!dao.getNeibours().contains(neibour))
 			return "此节点不是邻居，不能修改距离";
 		dao.replace(neibour, new Distance(dis));
+		synchronized (sender) {
+			sender.notify();
+		}
 		return "修改成功";
 	}
 

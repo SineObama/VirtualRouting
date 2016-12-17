@@ -59,6 +59,21 @@ public class Client {
 						sysout("指令格式：set [address]:[port] [positive integer]");
 						break;
 					}
+					tokens = tokens[1].split(" ");
+					if (tokens.length != 2) {
+						sysout("指令格式：set [neibour address]:[port] [positive integer]");
+						break;
+					}
+					Node neibour = new Node(tokens[0]);
+					int dis = Integer.parseInt(tokens[1]);
+					String msg2 = router.change(neibour, dis);
+					sysout(msg2);
+					break;
+
+				case "?":
+					sysout("指令：");
+					sysout("send [address]:[port] [text]");
+					sysout("set [address]:[port] [positive integer]");
 					break;
 
 				default:
