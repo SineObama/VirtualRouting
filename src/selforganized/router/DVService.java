@@ -26,6 +26,7 @@ public class DVService {
 	private DV myDV;
 	private Map<Node, DV> neighborDVs = new TreeMap<>();
 	private Map<Node, Distance> cost = new TreeMap<>();
+	private static DV initDV;
 	private final static DVService instance = new DVService();
 	private final static SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");
 
@@ -41,7 +42,7 @@ public class DVService {
 		String lineTxt;
 
 		// 从文件读取所有节点，记录自己合邻居，初始化距离为无穷
-		final DV initDV = new DV();
+		initDV = new DV();
 		while ((lineTxt = bufferedReader.readLine()) != null) {
 			String[] tokens = lineTxt.split(" ");
 			if (tokens.length != 2) {
@@ -87,17 +88,16 @@ public class DVService {
 		return ObjectUtil.clone(myDV.get(dst));
 	}
 
-	// private synchronized void replace(Node neibour, Node dst, RouteInfo info)
-	// {
-	// neighborDVs.get(neibour).replace(dst, info);
-	// }
-
 	public boolean isNeighbor(Node node) {
 		return cost.containsKey(node);
 	}
 
 	public Set<Node> getNeighbors() {
 		return cost.keySet();
+	}
+
+	public synchronized void shutdown() {
+		myDV = ObjectUtil.clone(initDV);
 	}
 
 	/**

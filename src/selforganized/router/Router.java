@@ -26,6 +26,13 @@ public class Router extends Thread {
 		sender.start();
 	}
 
+	public void shutdown() {
+		service.shutdown();
+		synchronized (sender) {
+			sender.notify();
+		}
+	}
+
 	@Override
 	public void run() {
 		synchronized (sender) {

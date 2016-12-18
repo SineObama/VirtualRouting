@@ -70,11 +70,16 @@ public class Client {
 					String msg2 = router.change(neibour, dis);
 					sysout(msg2);
 					break;
+					
+				case "shutdown":
+					router.shutdown();
+					break;
 
 				case "?":
 					sysout("ָ�");
 					sysout(sendFormat);
 					sysout(setFormat);
+					sysout("shutdown");
 					break;
 
 				default:
