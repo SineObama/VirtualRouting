@@ -1,11 +1,14 @@
 package selforganized;
 
 import java.io.File;
+import java.util.Map.Entry;
 import java.util.Scanner;
 
 import selforganized.exception.MyException;
 import selforganized.router.Router;
+import selforganized.router.struct.DV;
 import selforganized.router.struct.Node;
+import selforganized.router.struct.RouteInfo;
 
 public class Client {
 
@@ -66,6 +69,14 @@ public class Client {
 					sysout(msg2);
 					break;
 
+				case "show":
+					DV dv = router.getDV();
+					sysout("目的地\t\t下一跳\t\t总距离");
+					for (Entry<Node, RouteInfo> entry : dv.entrySet())
+						sysout(entry.getKey() + "\t" + entry.getValue().next + "\t" + entry.getValue().dis);
+					sysout("");
+					break;
+
 				case "shutdown":
 					router.shutdown();
 					break;
@@ -74,6 +85,7 @@ public class Client {
 					sysout("指令：");
 					sysout(sendFormat);
 					sysout(setFormat);
+					sysout("show");
 					sysout("shutdown");
 					break;
 

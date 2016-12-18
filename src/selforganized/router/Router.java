@@ -10,6 +10,7 @@ import selforganized.Client;
 import selforganized.ObjectUtil;
 import selforganized.exception.MyException;
 import selforganized.router.struct.DCMessage;
+import selforganized.router.struct.DV;
 import selforganized.router.struct.DVMessage;
 import selforganized.router.struct.Message;
 import selforganized.router.struct.Node;
@@ -34,6 +35,10 @@ public class Router extends Thread {
 		}
 	}
 
+	public DV getDV() {
+		return service.getDV();
+	}
+
 	@Override
 	public void run() {
 		synchronized (sender) {
@@ -48,7 +53,7 @@ public class Router extends Thread {
 				Object obj = ObjectUtil.receive(serverSocket);
 				if (obj instanceof DVMessage) {
 					DVMessage message = (DVMessage) obj;
-					// debug("收到来自" + message.sender + "的距离向量");
+//					service.debug("收到来自" + message.sender + "的距离向量");
 					boolean changed = false; // 标记自己的路由表是否改变
 					for (final Entry<Node, RouteInfo> entry : message.dv.entrySet())
 						changed |= service.refresh(message.sender, entry);
