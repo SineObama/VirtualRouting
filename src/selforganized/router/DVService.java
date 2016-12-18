@@ -146,8 +146,11 @@ public class DVService {
 
 		boolean changed = false;
 		final RouteInfo myInfo = myDV.get(dst);
-		final Distance totalDis = Distance.add(myDV.get(neighbor).dis, dis);
-		if (myInfo.dis.compareTo(totalDis) > 0) { // 代价变小
+		final Distance totalDis = Distance.add(cost.get(neighbor), dis);
+		if (myInfo == null) {
+			myDV.put(dst, new RouteInfo(neighbor, totalDis));
+			debug("添加自己经由" + neighbor + "到" + dst + "的代价为" + totalDis);
+		} else if (myInfo.dis.compareTo(totalDis) > 0) { // 代价变小
 			myDV.replace(dst, new RouteInfo(neighbor, totalDis));
 			debug("更新自己经由" + neighbor + "到" + dst + "的代价为" + totalDis);
 		} else if (neighbor.equals(myInfo.next) && myInfo.dis.compareTo(totalDis) < 0) { // 原路径代价增加
