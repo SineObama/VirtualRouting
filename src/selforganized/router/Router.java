@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import selforganized.Client;
 import selforganized.ObjectUtil;
 import selforganized.exception.MyException;
+import selforganized.router.struct.DCMessage;
 import selforganized.router.struct.DVMessage;
 import selforganized.router.struct.Message;
 import selforganized.router.struct.Node;
@@ -64,6 +65,9 @@ public class Router extends Thread {
 					}
 					message.sender = service.getMe();
 					service.debug(forward(message));
+				} else if (obj instanceof DCMessage) {
+					DCMessage message = (DCMessage) obj;
+					service.setDis(message.sender, message.distance);
 				}
 			}
 		} catch (Exception e) {
@@ -118,10 +122,18 @@ public class Router extends Thread {
 	public String change(Node neighbor, int dis) throws MyException {
 		if (!service.isNeighbor(neighbor))
 			return "此节点不是邻居，不能修改距离";
-		if (service.setDis(neighbor, dis))
+		if (dis <= 0 && dis != -1)
+			throw new MyException("邻居距离必须是正数或-1表示无穷");
+		if (service.setDis(neighbor, dis)) {
+			try {
+				ObjectUtil.send(neighbor, new DCMessage(service.getMe(), dis));
+			} catch (IOException e) {
+				return "出错（请确定目标路由器正常运行）: " + e;
+			}
 			synchronized (sender) {
 				sender.notify();
 			}
+		}
 		return "修改成功";
 	}
 

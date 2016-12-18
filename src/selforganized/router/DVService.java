@@ -113,11 +113,9 @@ public class DVService {
 	public synchronized boolean setDis(Node neighbor, int dis) throws MyException {
 		if (!isNeighbor(neighbor))
 			throw new MyException("不是邻居，无法修改");
-		if (dis <= 0 && dis != -1)
-			throw new MyException("邻居距离必须是正数或-1表示无穷");
 		Distance newDis = new Distance(dis);
 		cost.replace(neighbor, newDis);
-		debug("更新自己到邻居" + neighbor + "直接距离为" + newDis);
+		debug("更新自己到邻居" + neighbor + "的直接距离为" + newDis);
 		RouteInfo oldInfo = myDV.get(neighbor);
 		RouteInfo minInfo = getMin(neighbor);
 		if (oldInfo.equals(minInfo))
