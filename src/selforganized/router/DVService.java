@@ -119,10 +119,11 @@ public class DVService {
 		cost.replace(neighbor, newDis);
 		debug("更新自己到邻居" + neighbor + "直接距离为" + newDis);
 		RouteInfo oldInfo = myDV.get(neighbor);
-		if (oldInfo.dis.compareTo(newDis) < 0 && !neighbor.equals(oldInfo.next))
+		RouteInfo minInfo = getMin(neighbor);
+		if (oldInfo.equals(minInfo))
 			return false;
-		myDV.replace(neighbor, new RouteInfo(neighbor, newDis));
-		debug("更新自己到邻居" + neighbor + "的距离为" + newDis);
+		myDV.replace(neighbor, minInfo);
+		debug("更新自己经由" + minInfo.next + "到" + neighbor + "的代价为" + minInfo.dis);
 		return true;
 	}
 
