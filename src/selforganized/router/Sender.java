@@ -24,14 +24,14 @@ public class Sender extends Thread {
 			try {
 				wait(); // 用于提前创建线程，但与路由器一同开始
 			} catch (InterruptedException e1) {
-				// TODO Auto-generated catch block
+				// TODO InterruptedException 不知何时会发生。notify的时候并不会
 				e1.printStackTrace();
 			}
 			while (true) {
 				try {
 					wait(2000);
 				} catch (InterruptedException e1) {
-					// TODO Auto-generated catch block
+					// TODO InterruptedException 不知何时会发生。notify的时候并不会
 					e1.printStackTrace();
 				}
 				// 开始发送路由表

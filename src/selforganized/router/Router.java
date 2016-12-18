@@ -59,15 +59,8 @@ public class Router extends Thread {
 					service.debug(forward(message));
 				}
 			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (MyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (Exception e) {
+			service.debug("出错: " + e);
 		} finally {
 			if (serverSocket != null)
 				try {
@@ -76,7 +69,7 @@ public class Router extends Thread {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-			System.out.println("路由器已停止");
+			service.debug("路由器已停止");
 		}
 	}
 
@@ -110,10 +103,9 @@ public class Router extends Thread {
 			ObjectUtil.send(neighbor, message);
 			return "成功发送报文到下一节点：" + neighbor;
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return "可能是连接失败（请确定目标路由器正常运行）";
 		}
-		return "严重内部错误";
 	}
 
 	public String change(Node neighbor, int dis) throws MyException {

@@ -85,8 +85,7 @@ public class Client {
 			} catch (MyException e) {
 				sysout(e.getMessage());
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				sysout("³ö´í: " + e);
 			}
 		}
 	}
