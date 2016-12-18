@@ -1,7 +1,6 @@
 package selforganized;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Scanner;
 
 import selforganized.exception.MyException;
@@ -10,26 +9,22 @@ import selforganized.router.struct.Node;
 
 public class Client {
 
-	static final String prefix = "client";
-	static final String postfix = ".txt";
 	static final String sendFormat = "send [address]:[port] [text]";
 	static final String setFormat = "set [neibour address]:[port] [positive integer]|-1";
 
-	public static void main(String[] args) throws NumberFormatException, IOException, MyException {
-		// 从参数读取配置文件根目录与文件名后缀
-		int i = 0;
-		String path = "./";
-		if (args.length > 0)
-			i = Integer.parseInt(args[0]);
-		if (args.length == 2)
-			path = args[1];
-
+	public static void main(String[] args) throws MyException {
+		// 从参数读取配置文件全路径
 		// 找到配置文件，启动路由器
-		File file = new File(path + prefix + i + postfix);
-		if (!file.exists() || !file.isFile())
-			throw new RuntimeException("找不到路由信息文件");
-		Router router = new Router(file);
-		router.start();
+		File file = new File(args[0]);
+		Router router = null;
+		try {
+			if (!file.exists() || !file.isFile())
+				throw new MyException("找不到路由信息文件");
+			router = new Router(file);
+			router.start();
+		} catch (Exception e) {
+			throw new MyException("初始化出错: " + e);
+		}
 
 		// 开始从命令行读取指令
 		@SuppressWarnings("resource")
@@ -70,7 +65,7 @@ public class Client {
 					String msg2 = router.change(neibour, dis);
 					sysout(msg2);
 					break;
-					
+
 				case "shutdown":
 					router.shutdown();
 					break;

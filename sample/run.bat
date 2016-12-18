@@ -8,7 +8,7 @@ if %max% LSS 0 (
     :start "jar" cmd /c "cd .. && jar.bat || pause"
     for /l %%i in (0,1,%max%) do (
         :start %title%%%i cmd /c "java -jar ../Client.jar %%i ./%1/%2/ || pause"
-        start "client%%i" cmd /c "cd ../bin && java selforganized.Client %%i ../sample/%1/%2/ || pause"
+        start "client%%i" cmd /c "cd ../bin && java selforganized.Client ../sample/%1/%2/client%%i.txt || pause"
     )
     pause
     for /l %%j in (0,1,%max%) do (
