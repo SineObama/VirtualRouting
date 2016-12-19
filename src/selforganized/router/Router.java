@@ -31,6 +31,7 @@ public class Router extends Thread {
 	public void shutdown() {
 		service.shutdown();
 		synchronized (sender) {
+			sender.toBeShutdown = true;
 			sender.notify();
 		}
 	}
@@ -53,14 +54,8 @@ public class Router extends Thread {
 				Object obj = ObjectUtil.receive(serverSocket);
 				if (obj instanceof DVMessage) {
 					DVMessage message = (DVMessage) obj;
-//					service.debug("收到来自" + message.sender + "的距离向量");
-					boolean changed = false; // 标记自己的路由表是否改变
 					for (final Entry<Node, RouteInfo> entry : message.dv.entrySet())
-						changed |= service.refresh(message.sender, entry);
-					if (changed)// 路由表改变后立即发送最新路由表给邻居
-						synchronized (sender) {
-							sender.notify();
-						}
+						service.refresh(message.sender, entry);
 				} else if (obj instanceof Message) {
 					Message message = (Message) obj;
 					service.debug("收到由" + message.sender + "转发的报文");
