@@ -98,6 +98,8 @@ public class DVService {
 
 	public synchronized void shutdown() {
 		myDV = ObjectUtil.clone(initDV);
+		for (Node node : cost.keySet())// TODO 改用replaceAll提高效率
+			cost.replace(node, Distance.getUnreachable());
 	}
 
 	/**
@@ -113,7 +115,12 @@ public class DVService {
 	public synchronized boolean setDis(Node neighbor, int dis) throws MyException {
 		if (!isNeighbor(neighbor))
 			throw new MyException("不是邻居，无法修改");
-		Distance newDis = new Distance(dis);
+		return setDis(neighbor, new Distance(dis));
+	}
+	
+	public synchronized boolean setDis(Node neighbor, Distance newDis) throws MyException {
+		if (!isNeighbor(neighbor))
+			throw new MyException("不是邻居，无法修改");
 		cost.replace(neighbor, newDis);
 		debug("更新自己到邻居" + neighbor + "的直接距离为" + newDis);
 		RouteInfo oldInfo = myDV.get(neighbor);

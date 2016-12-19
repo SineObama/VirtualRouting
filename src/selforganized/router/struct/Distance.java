@@ -48,4 +48,8 @@ public class Distance implements Serializable, Comparable<Distance> {
 			total = Integer.MAX_VALUE;
 		return new Distance(total);
 	}
+	
+	public static Distance getUnreachable() {
+		return new Distance(Integer.MAX_VALUE);
+	}
 }

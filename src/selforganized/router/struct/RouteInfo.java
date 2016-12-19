@@ -44,7 +44,7 @@ public class RouteInfo implements Serializable, Comparable<RouteInfo> {
 	}
 
 	public static RouteInfo getUnreachable() {
-		return new RouteInfo(null, Integer.MAX_VALUE);
+		return new RouteInfo(null, Distance.getUnreachable());
 	}
 
 	@Override

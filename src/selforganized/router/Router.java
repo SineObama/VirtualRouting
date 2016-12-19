@@ -12,6 +12,7 @@ import selforganized.exception.MyException;
 import selforganized.router.struct.DCMessage;
 import selforganized.router.struct.DV;
 import selforganized.router.struct.DVMessage;
+import selforganized.router.struct.Distance;
 import selforganized.router.struct.Message;
 import selforganized.router.struct.Node;
 import selforganized.router.struct.RouteInfo;
@@ -31,8 +32,14 @@ public class Router extends Thread {
 	public void shutdown() {
 		service.shutdown();
 		synchronized (sender) {
-			sender.toBeShutdown = true;
-			sender.notify();
+			for (Node neibour : service.getNeighbors()) {
+				DCMessage message = new DCMessage(service.getMe(), Distance.getUnreachable());
+				try {
+					ObjectUtil.send(neibour, message);
+				} catch (IOException e) {
+					service.debug("发送到" + neibour + "失败: " + e);
+				}
+			}
 		}
 	}
 
@@ -54,8 +61,14 @@ public class Router extends Thread {
 				Object obj = ObjectUtil.receive(serverSocket);
 				if (obj instanceof DVMessage) {
 					DVMessage message = (DVMessage) obj;
+//					service.debug("收到来自" + message.sender + "的距离向量");
+					boolean changed = false; // 标记自己的路由表是否改变
 					for (final Entry<Node, RouteInfo> entry : message.dv.entrySet())
-						service.refresh(message.sender, entry);
+						changed |= service.refresh(message.sender, entry);
+					if (changed)// 路由表改变后立即发送最新路由表给邻居
+						synchronized (sender) {
+							sender.notify();
+						}
 				} else if (obj instanceof Message) {
 					Message message = (Message) obj;
 					service.debug("收到由" + message.sender + "转发的报文");
@@ -126,7 +139,7 @@ public class Router extends Thread {
 			throw new MyException("邻居距离必须是正数或-1表示无穷");
 		if (service.setDis(neighbor, dis)) {
 			try {
-				ObjectUtil.send(neighbor, new DCMessage(service.getMe(), dis));
+				ObjectUtil.send(neighbor, new DCMessage(service.getMe(), new Distance(dis)));
 			} catch (IOException e) {
 				return "出错（请确定目标路由器正常运行）: " + e;
 			}

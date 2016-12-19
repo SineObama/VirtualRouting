@@ -13,9 +13,6 @@ import selforganized.router.struct.Node;
  *
  */
 public class Sender extends Thread {
-
-	public boolean isShutdown = false;
-	public boolean toBeShutdown = false;
 	private final DVService service = DVService.getInstance();
 
 	public Sender() {
@@ -37,28 +34,25 @@ public class Sender extends Thread {
 					// TODO InterruptedException 不知何时会发生。notify的时候并不会
 					e1.printStackTrace();
 				}
-				if (isShutdown)
-					continue;
 				// 开始发送路由表
-				for (Node neibour : service.getNeighbors()) {
-					try {
-						DVMessage message = new DVMessage();
-						message.sender = service.getMe();
-						message.dv = service.getDV();
-						ObjectUtil.send(neibour, message);
-						// service.debug("发送距离向量到" + neibour + "成功");
-					} catch (IOException e) {
-						service.debug("发送距离向量到" + neibour + "失败: " + e);
-						// TODO 修改路由表？
-					}
-				}
-				if (toBeShutdown) {
-					toBeShutdown = false;
-					isShutdown = true;
-				}
+				DVMessage message = new DVMessage();
+				message.sender = service.getMe();
+				message.dv = service.getDV();
+				send(message);
 			}
 		}
-
+	}
+	
+	public void send(Object obj) {
+		for (Node neibour : service.getNeighbors()) {
+			try {
+				ObjectUtil.send(neibour, obj);
+				// service.debug("发送到" + neibour + "成功");
+			} catch (IOException e) {
+				service.debug("发送到" + neibour + "失败: " + e);
+				// TODO 修改路由表？
+			}
+		}
 	}
 
 }
